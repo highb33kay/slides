@@ -1,9 +1,15 @@
 <?php
-$slides = array(
-  "Image1.jpg",
-  "Image1.jpg",
-  "Image3.jpg"
-);
+// find all the images in the folder and add them to the slides array
+$slides = array();
+
+if ($handle = opendir('.')) {
+  while (false !== ($file = readdir($handle))) {
+    if (preg_match("/.jpg$/", $file)) {
+      $slides[] = $file;
+    }
+  }
+  closedir($handle);
+}
 ?>
 
 <div class="slider">
@@ -12,6 +18,7 @@ $slides = array(
       width: 100%;
       height: 500px;
       overflow: hidden;
+      position: relative;
     }
 
     .slides {
@@ -21,90 +28,87 @@ $slides = array(
       padding: 0;
       margin: 0;
       transition: transform 0.3s ease-in-out;
+      display: flex;
     }
 
     .slides>li {
-      float: left;
-      width: 100%;
+      flex: 0 0 10%;
       height: 100%;
-
+      overflow: hidden;
+      transition: flex 0.3s ease-in-out;
     }
 
-    .slider .slides li {
-      display: block;
+    .slides>li:first-child {
+      flex: 0 0 80%;
     }
 
+    .slides>li:hover {
+      flex: 0 0 80%;
+    }
 
     .slider img {
       width: 100%;
       height: 100%;
       object-fit: cover;
+      transition: transform 0.3s ease-in-out;
     }
 
-    .arrow {
-
-      background-color: rgba(0, 0, 0, 0.5);
-      color: #fff;
-      font-size: 30px;
-      text-align: center;
-      line-height: 50px;
-      cursor: pointer;
-    }
-
-    .slider-nav {
-      position: absolute;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      display: flex;
-      justify-content: center;
-      align-items: center;
+    .slider img:hover {
+      transform: scale(1.1);
     }
   </style>
 
   <ul class="slides">
     <?php
     foreach ($slides as $slide) {
-      echo "<li><img src='./$slide'></li>";
+      echo "<li><img src='$slide'></li>";
     }
     ?>
   </ul>
-
-
-  <div class="slider-nav">
-    <span class="prev-button">left</span>
-    <span class="next-button">right</span>
-  </div>
 
   <div>Hello</div>
 </div>
 
 <script>
-  // Get the necessary elements
-  const slider = document.querySelector('.slider');
-  const slides = slider.querySelector('.slides');
-  const slideItems = slides.querySelectorAll('li');
+  const slides = document.querySelector('.slides');
+  const slide = document.querySelectorAll('.slides li');
+  let counter = 1;
+  const size = slide[0].clientWidth * 0.1;
 
-  // Set up initial variables
-  let currentSlide = 0;
-  const slideWidth = slideItems[0].offsetWidth;
+  slides.style.transform = 'translateX(' + (-size * counter) + 'px)';
 
-  // Function to move to the next slide
-  function nextSlide() {
-    currentSlide = (currentSlide + 1) % slideItems.length;
-    slides.style.transform = `translateX(-${currentSlide * slideWidth}px)`;
+  slides.addEventListener('transitionend', () => {
+    if (counter === slide.length - 1) {
+      slides.style.transition = "none";
+      counter = 1;
+      slides.style.transform = 'translateX(' + (-size * counter) + 'px)';
+    }
+    if (counter === 0) {
+      slides.style.transition = "none";
+      counter = slide.length - 2;
+      slides.style.transform = 'translateX(' + (-size * counter) + 'px)';
+    }
+  });
+
+  for (let i = 1; i < slide.length; i++) {
+    slide[i].addEventListener('mouseover', () => {
+      for (let j = 0; j < slide.length; j++) {
+        if (j === i) {
+          slide[j].style.flex = '0 0 80%';
+        } else {
+          slide[j].style.flex = '0 0 10%';
+        }
+      }
+    });
   }
 
-  // Function to move to the previous slide
-  function prevSlide() {
-    currentSlide = (currentSlide - 1 + slideItems.length) % slideItems.length;
-    slides.style.transform = `translateX(-${currentSlide * slideWidth}px)`;
-  }
-
-  // Add event listeners for navigation
-  document.querySelector('.next-button').addEventListener('click', nextSlide);
-  document.querySelector('.prev-button').addEventListener('click', prevSlide);
-
-  // Autoplay the slider
-  setInterval(nextSlide, 3000);
+  slide[0].addEventListener('mouseleave', () => {
+    for (let j = 0; j < slide.length; j++) {
+      if (j === 0) {
+        slide[j].style.flex = '0 0 80%';
+      } else {
+        slide[j].style.flex = '0 0 10%';
+      }
+    }
+  });
 </script>
