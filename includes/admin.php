@@ -7,127 +7,6 @@
 // Add the admin menu.
 add_action('admin_menu', 'dynamic_slider_plugin_add_admin_menu');
 
-/**
- * Add the admin menu.
- */
-function dynamic_slider_plugin_add_admin_menu()
-{
-    add_menu_page(
-        'Dynamic Slider',
-        'Dynamic Slider',
-        'manage_options',
-        'dynamic_slider',
-        'dynamic_slider_plugin_admin_page'
-    );
-}
-
-/**
- * Render the admin page.
- */
-function dynamic_slider_plugin_admin_page()
-{
-?>
-    <div class="wrap">
-        <h2>Dynamic Slider</h2>
-
-        <?php if (isset($_GET['updated']) && $_GET['updated'] == 'true') { ?>
-            <div class="updated">
-                <p>Slider updated successfully!</p>
-            </div>
-        <?php } ?>
-
-        <table class="wp-list-table widefat fixed striped">
-            <thead>
-                <tr>
-                    <th>Header</th>
-                    <th>Paragraph</th>
-                    <th>Button 1 Label</th>
-                    <th>Button 1 URL</th>
-                    <th>Button 2 Label</th>
-                    <th>Button 2 URL</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php
-                $slides = get_dynamic_slider_slides();
-                foreach ($slides as $slide) {
-                ?>
-                    <tr>
-                        <td><?php echo $slide->header; ?></td>
-                        <td><?php echo $slide->paragraph; ?></td>
-                        <td><?php echo $slide->button1_label; ?></td>
-                        <td><?php echo $slide->button1_url; ?></td>
-                        <td><?php echo $slide->button2_label; ?></td>
-                        <td><?php echo $slide->button2_url; ?></td>
-                        <td>
-                            <a href="?page=dynamic_slider&action=edit&id=<?php echo $slide->id; ?>">Edit</a>
-                            <a href="?page=dynamic_slider&action=delete&id=<?php echo $slide->id; ?>">Delete</a>
-                        </td>
-                    </tr>
-                <?php } ?>
-            </tbody>
-        </table>
-
-        <div class="add-new-slide">
-            <h2>Add New Slide</h2>
-            <form action="?page=dynamic_slider&action=add" method="post">
-                <input type="text" name="header" placeholder="Header">
-                <input type="text" name="paragraph" placeholder="Paragraph">
-                <input type="text" name="button1_label" placeholder="Button 1 Label">
-                <input type="text" name="button1_url" placeholder="Button 1 URL">
-                <input type="text" name="button2_label" placeholder="Button 2 Label">
-                <input type="text" name="button2_url" placeholder="Button 2 URL">
-                <input type="submit" value="Add Slide">
-            </form>
-        </div>
-    </div>
-<?php
-}
-
-/**
- * Get all the slides.
- *
- * @return array
- */
-function get_dynamic_slider_slides()
-{
-    global $wpdb;
-
-    $sql = "SELECT * FROM dynamic_slider;";
-
-    $results = $wpdb->get_results($sql);
-
-    return $results;
-}
-
-/**
- * Add a slide.
- *
- * @param array $data
- */
-function add_dynamic_slider_slide($data)
-{
-    global $wpdb;
-
-    $sql = "INSERT INTO dynamic_slider (
-    header,
-    paragraph,
-    button1_label,
-    button1_url,
-    button2_label,
-    button2_url
-  ) VALUES (
-    '{$data['header']}',
-    '{$data['paragraph']}',
-    '{$data['button1_label']}',
-    '{$data['button1_url']}',
-    '{$data['button2_label']}',
-    '{$data['button2_url']}'
-  );";
-
-    $wpdb->query($sql);
-}
 
 /**
  * Edit a slide.
@@ -139,7 +18,20 @@ function edit_dynamic_slider_slide($id, $data)
 {
     global $wpdb;
 
+    // Handle image upload
+    $image_url = '';
+    if ($data['image'] && !empty($data['image']['tmp_name'])) {
+        $upload_dir = wp_upload_dir();
+        $image_name = sanitize_file_name($data['image']['name']);
+        $image_path = $upload_dir['path'] . '/' . $image_name;
+
+        if (move_uploaded_file($data['image']['tmp_name'], $image_path)) {
+            $image_url = $upload_dir['url'] . '/' . $image_name;
+        }
+    }
+
     $sql = "UPDATE dynamic_slider SET
+    image = '{$image_url}',
     header = '{$data['header']}',
     paragraph = '{$data['paragraph']}',
     button1_label = '{$data['button1_label']}',
@@ -150,6 +42,55 @@ function edit_dynamic_slider_slide($id, $data)
 
     $wpdb->query($sql);
 }
+
+
+/**
+ * Get all the slides.
+ *
+ * @return array
+ */
+function get_dynamic_slider_slides()
+{
+    global $wpdb;
+
+    $sql = "SELECT * FROM wp_dynamic_slider;";
+
+    $results = $wpdb->get_results($sql, ARRAY_A);
+
+    return $results;
+}
+
+
+/**
+ * Add a slide to the dynamic slider.
+ *
+ * @param string $header
+ * @param string $paragraph
+ * @param string $button1_label
+ * @param string $button1_url
+ * @param string $button2_label
+ * @param string $button2_url
+ * @return void
+ */
+function add_dynamic_slider_slide($header, $paragraph, $button1_label, $button1_url, $button2_label, $button2_url, $image)
+{
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'dynamic_slider';
+
+    $wpdb->insert(
+        $table_name,
+        array(
+            'image' => $image,
+            'header' => $header,
+            'paragraph' => $paragraph,
+            'button1_label' => $button1_label,
+            'button1_url' => $button1_url,
+            'button2_label' => $button2_label,
+            'button2_url' => $button2_url,
+        )
+    );
+}
+
 
 /**
  * Delete a slide.
@@ -164,3 +105,7 @@ function delete_dynamic_slider_slide($id)
 
     $wpdb->query($sql);
 }
+
+/**
+ * Display the slider.
+ */
